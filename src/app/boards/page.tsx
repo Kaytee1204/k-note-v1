@@ -14,6 +14,8 @@ import {
   ArrowRight,
   FileQuestion,
   Trash2,
+  Lock,
+  LogIn,
 } from "lucide-react";
 import { Board } from "@/types";
 import { formatDate, getVietnamISODate } from "@/lib/utils";
@@ -21,6 +23,7 @@ import { formatDate, getVietnamISODate } from "@/lib/utils";
 export default function BoardsListPage() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [filteredBoards, setFilteredBoards] = useState<Board[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Selected Date state (initialized to today's Vietnam date 2026-08-06)
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -33,6 +36,16 @@ export default function BoardsListPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
+
+  // Check auth status
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsLoggedIn(!!data.isLoggedIn);
+      })
+      .catch(() => setIsLoggedIn(false));
+  }, []);
 
   // Initialize selectedDate on Client Mount (Read from sessionStorage if present, else Vietnam Today)
   useEffect(() => {
@@ -80,6 +93,12 @@ export default function BoardsListPage() {
     e.preventDefault();
     if (!boardName.trim()) return;
 
+    if (!isLoggedIn) {
+      alert("Bạn cần Đăng nhập để tạo Bảng mới!");
+      router.push("/login");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/boards", {
@@ -114,6 +133,11 @@ export default function BoardsListPage() {
     e.preventDefault();
     e.stopPropagation();
 
+    if (!isLoggedIn) {
+      alert("Bạn cần Đăng nhập để xóa Bảng!");
+      return;
+    }
+
     if (!confirm(`Bạn có chắc chắn muốn xóa Bảng "${boardName}" không? Tất cả dữ liệu của Bảng này sẽ bị xóa.`)) {
       return;
     }
@@ -138,7 +162,7 @@ export default function BoardsListPage() {
       <Header />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
-        {/* Banner & Controls Section - "K-Note Workspace" */}
+        {/* Banner & Controls Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 shadow-sm backdrop-blur-md">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
@@ -149,6 +173,11 @@ export default function BoardsListPage() {
             </div>
             <p className="text-xs text-slate-500 dark:text-zinc-400">
               Hôm nay: <span className="font-bold text-neonPink-500">{formatDate(new Date())}</span>
+              {!isLoggedIn && (
+                <span className="ml-2 font-medium text-amber-600 dark:text-amber-400">
+                  (Chế độ Khách: Chỉ xem Bảng)
+                </span>
+              )}
             </p>
           </div>
 
@@ -166,15 +195,44 @@ export default function BoardsListPage() {
               />
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glow hover:shadow-glowLg transition-all active:scale-95 shrink-0"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>+ Tạo Bảng Mới</span>
-            </button>
+            {/* "+ Tạo Bảng Mới" Button - Show for Logged In users, or link to Login for Guests */}
+            {isLoggedIn ? (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center justify-center space-x-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glow hover:shadow-glowLg transition-all active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>+ Tạo Bảng Mới</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center space-x-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all shrink-0"
+                title="Đăng nhập để tạo Bảng mới"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-500" />
+                <span>Đăng Nhập Để Tạo Bảng</span>
+              </Link>
+            )}
           </div>
         </div>
+
+        {/* Guest Banner Prompt */}
+        {!isLoggedIn && (
+          <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+            <div className="flex items-center space-x-2">
+              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Bạn đang xem Bảng K-Note ở chế độ <strong>Khách (Guest)</strong>. Bạn chỉ có thể xem dữ liệu. Đăng nhập để tạo Bảng và ghi chú!</span>
+            </div>
+            <Link
+              href="/login"
+              className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl font-bold text-xs text-white bg-amber-600 hover:bg-amber-700 transition-colors shrink-0"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng Nhập Ngay</span>
+            </Link>
+          </div>
+        )}
 
         {/* Board Cards Grid or Empty State */}
         {isLoading ? (
@@ -193,16 +251,28 @@ export default function BoardsListPage() {
                 {selectedDate ? `Chưa có Bảng nào được tạo trong ngày ${selectedDate}` : "Chưa có Bảng công việc nào"}
               </h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto mt-1">
-                Hãy nhấn nút &quot;+ Tạo Bảng Mới&quot; để khởi tạo Bảng Standup cho hôm nay!
+                {isLoggedIn
+                  ? 'Hãy nhấn nút "+ Tạo Bảng Mới" để khởi tạo Bảng Standup cho hôm nay!'
+                  : "Đăng nhập ngay để bắt đầu tạo Bảng Standup cho nhóm của bạn!"}
               </p>
             </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glow hover:shadow-glowLg transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>+ Tạo Bảng Mới Ngay</span>
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glow hover:shadow-glowLg transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>+ Tạo Bảng Mới Ngay</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glow hover:shadow-glowLg transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Đăng Nhập Để Tạo Bảng</span>
+              </Link>
+            )}
           </div>
         ) : (
           /* Boards Grid - Responsive grid */
@@ -219,15 +289,17 @@ export default function BoardsListPage() {
                       STANDUP BOARD
                     </span>
 
-                    {/* Delete Board Action */}
-                    <button
-                      onClick={(e) => handleDeleteBoard(e, board.id, board.name)}
-                      type="button"
-                      title="Xóa Bảng này"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors z-10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Delete Board Action - ONLY for Logged In Users */}
+                    {isLoggedIn && (
+                      <button
+                        onClick={(e) => handleDeleteBoard(e, board.id, board.name)}
+                        type="button"
+                        title="Xóa Bảng này"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors z-10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-zinc-100 group-hover:text-neonPink-500 transition-colors">
@@ -258,7 +330,7 @@ export default function BoardsListPage() {
       </main>
 
       {/* Modal: Create Board */}
-      {isModalOpen && (
+      {isModalOpen && isLoggedIn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-glowLg p-5 sm:p-6 space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">

@@ -3,19 +3,25 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Terminal, LogOut, Layers } from "lucide-react";
+import { Terminal, LogOut, LogIn, UserPlus, Eye } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Read email safely from cookie
-    const match = document.cookie.match(new RegExp("(^| )user_email=([^;]+)"));
-    if (match) {
-      setUserEmail(decodeURIComponent(match[2]));
-    }
+    // Fetch auth status from /api/auth/me
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsLoggedIn(!!data.isLoggedIn);
+        setUserEmail(data.email || null);
+      })
+      .catch(() => {
+        setIsLoggedIn(false);
+      });
   }, []);
 
   const handleLogout = async () => {
@@ -24,6 +30,8 @@ export function Header() {
     } catch {
       // Ignore
     }
+    setIsLoggedIn(false);
+    setUserEmail(null);
     router.push("/login");
     router.refresh();
   };
@@ -42,48 +50,66 @@ export function Header() {
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-neonPink-500 via-pink-400 to-rose-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(255,45,117,0.4)]">
                   K-Note
                 </h1>
-                <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-neonPink-500/10 text-neonPink-500 border border-neonPink-500/30 uppercase tracking-widest">
-                  PRO
-                </span>
+                {isLoggedIn ? (
+                  <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-neonPink-500/10 text-neonPink-500 border border-neonPink-500/30 uppercase tracking-widest">
+                    PRO
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border border-slate-300 dark:border-zinc-700 uppercase tracking-widest">
+                    <Eye className="w-2.5 h-2.5" />
+                    <span>GUEST (CHỈ XEM)</span>
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium hidden sm:block">
                 Quản lý Bảng Công việc & Standup Team
               </p>
             </div>
           </Link>
-
-          {/* Nav Link */}
-          <nav className="hidden sm:flex items-center space-x-1">
-            <Link
-              href="/boards"
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-neonPink-500/10 text-neonPink-500 border border-neonPink-500/30 shadow-glowSm"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Bảng Công Việc</span>
-            </Link>
-          </nav>
         </div>
 
         {/* Right Action Controls */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           <ThemeToggle />
 
-          {/* User Email & Logout */}
+          {/* User Email & Logout / Login Controls */}
           <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-zinc-800">
-            {userEmail && (
-              <span className="hidden md:inline-block text-xs font-mono text-slate-500 dark:text-zinc-400 max-w-[120px] truncate" title={userEmail}>
-                {userEmail}
-              </span>
-            )}
+            {isLoggedIn ? (
+              <>
+                {userEmail && (
+                  <span className="hidden md:inline-block text-xs font-mono text-slate-500 dark:text-zinc-400 max-w-[120px] truncate" title={userEmail}>
+                    {userEmail}
+                  </span>
+                )}
 
-            <button
-              onClick={handleLogout}
-              type="button"
-              title="Đăng xuất khỏi K-Note"
-              className="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-500/30 transition-all duration-300"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+                <button
+                  onClick={handleLogout}
+                  type="button"
+                  title="Đăng xuất khỏi K-Note"
+                  className="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-500/30 transition-all duration-300"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-neonPink-500 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Đăng Nhập</span>
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="inline-flex items-center space-x-1 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glow hover:shadow-glowLg transition-all"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Đăng Ký</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

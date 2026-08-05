@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, Trash2, Plus } from "lucide-react";
+import Link from "next/link";
+import { Check, Trash2, Plus, Lock, LogIn } from "lucide-react";
 import { StandupEntry, WorkStatus } from "@/types";
 import { formatDateTime } from "@/lib/utils";
 
 interface BoardTableProps {
   entries: StandupEntry[];
   currentUserId?: string;
+  isReadOnly?: boolean;
   onUpdateEntry: (id: string, updatedFields: Partial<StandupEntry>) => Promise<void>;
   onAddEntryRow: (userName?: string) => Promise<void>;
   onDeleteEntry: (id: string) => Promise<void>;
@@ -16,6 +18,7 @@ interface BoardTableProps {
 export function BoardTable({
   entries,
   currentUserId,
+  isReadOnly = false,
   onUpdateEntry,
   onAddEntryRow,
   onDeleteEntry,
@@ -27,7 +30,7 @@ export function BoardTable({
   const [savedStatusId, setSavedStatusId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Sync localLogs state whenever entries array is updated from server or optimistic update
+  // Sync localLogs state whenever entries array is updated
   useEffect(() => {
     const map: Record<
       string,
@@ -48,6 +51,7 @@ export function BoardTable({
     field: "yesterdayTask" | "todayTask" | "userName",
     value: string
   ) => {
+    if (isReadOnly) return;
     setLocalLogs((prev) => ({
       ...prev,
       [id]: {
@@ -61,6 +65,7 @@ export function BoardTable({
     id: string,
     field: "yesterdayTask" | "todayTask" | "userName"
   ) => {
+    if (isReadOnly) return;
     const currentVal = localLogs[id]?.[field] ?? "";
     setSavingId(id);
     await onUpdateEntry(id, { [field]: currentVal });
@@ -74,6 +79,7 @@ export function BoardTable({
     field: "yesterdayStatus" | "todayStatus",
     newStatus: WorkStatus
   ) => {
+    if (isReadOnly) return;
     setSavingId(id);
     await onUpdateEntry(id, { [field]: newStatus });
     setSavingId(null);
@@ -82,6 +88,7 @@ export function BoardTable({
   };
 
   const handleQuickAddRow = async () => {
+    if (isReadOnly) return;
     setIsAdding(true);
     await onAddEntryRow();
     setIsAdding(false);
@@ -97,11 +104,14 @@ export function BoardTable({
 
     return (
       <select
+        disabled={isReadOnly}
         value={status || "NOT_YET"}
         onChange={(e) =>
           handleStatusChange(entryId, fieldName, e.target.value as WorkStatus)
         }
-        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border outline-none cursor-pointer transition-all duration-200 ${
+        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border outline-none ${
+          isReadOnly ? "cursor-not-allowed opacity-90" : "cursor-pointer"
+        } transition-all duration-200 ${
           isDone
             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
             : isInProgress
@@ -143,31 +153,49 @@ export function BoardTable({
             <th className="py-3.5 px-4 w-[125px]">Tiến độ</th>
             <th className="py-3.5 px-4 min-w-[260px]">Việc sẽ làm hôm nay</th>
             <th className="py-3.5 px-4 w-[125px]">Tiến độ</th>
-            <th className="py-3.5 px-4 w-[100px] text-right">Thao tác</th>
+            <th className="py-3.5 px-4 w-[100px] text-right">
+              {isReadOnly ? "Thời gian" : "Thao tác"}
+            </th>
           </tr>
         </thead>
 
         {/* Table Body */}
         <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60 text-xs">
-          {/* TOP INLINE ADD BUTTON */}
+          {/* TOP INLINE ADD BUTTON OR GUEST PROMPT */}
           <tr className="bg-slate-50/70 dark:bg-zinc-950/40 border-b border-slate-200/80 dark:border-zinc-800/80">
             <td colSpan={7} className="py-2.5 px-4">
-              <button
-                type="button"
-                disabled={isAdding}
-                onClick={handleQuickAddRow}
-                className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl font-bold text-xs text-neonPink-500 hover:text-white bg-neonPink-500/10 hover:bg-neonPink-500 border border-neonPink-500/30 transition-all duration-200 shadow-glowSm group cursor-pointer"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
-                <span>+ Thêm dòng công việc mới (Click để chèn nhanh)</span>
-              </button>
+              {!isReadOnly ? (
+                <button
+                  type="button"
+                  disabled={isAdding}
+                  onClick={handleQuickAddRow}
+                  className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl font-bold text-xs text-neonPink-500 hover:text-white bg-neonPink-500/10 hover:bg-neonPink-500 border border-neonPink-500/30 transition-all duration-200 shadow-glowSm group cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
+                  <span>+ Thêm dòng công việc mới (Click để chèn nhanh)</span>
+                </button>
+              ) : (
+                <div className="flex items-center justify-between py-0.5">
+                  <span className="inline-flex items-center space-x-1.5 text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                    <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>Bạn đang ở Chế độ Khách (Chỉ xem). Đăng nhập để thêm/sửa công việc!</span>
+                  </span>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-neonPink-500 to-pink-600 shadow-glowSm"
+                  >
+                    <LogIn className="w-3 h-3" />
+                    <span>Đăng Nhập</span>
+                  </Link>
+                </div>
+              )}
             </td>
           </tr>
 
           {entries.length === 0 ? (
             <tr>
               <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-zinc-500 font-medium">
-                Bảng chưa có dòng công việc nào. Hãy nhấn nút <span className="text-neonPink-500 font-bold">+ Thêm dòng công việc mới</span> ở phía trên để bắt đầu!
+                Bảng chưa có dòng công việc nào.
               </td>
             </tr>
           ) : (
@@ -195,10 +223,13 @@ export function BoardTable({
                       <div className="flex-1">
                         <input
                           type="text"
+                          readOnly={isReadOnly}
                           value={localLogs[entry.id]?.userName ?? entry.userName ?? ""}
                           onChange={(e) => handleTextChange(entry.id, "userName", e.target.value)}
                           onBlur={() => handleBlurSave(entry.id, "userName")}
-                          className="w-full font-bold text-slate-900 dark:text-zinc-100 bg-transparent focus:outline-none focus:border-b focus:border-neonPink-500"
+                          className={`w-full font-bold text-slate-900 dark:text-zinc-100 bg-transparent focus:outline-none ${
+                            !isReadOnly && "focus:border-b focus:border-neonPink-500"
+                          }`}
                         />
                         {isOwner && (
                           <span className="inline-block text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-neonPink-500/10 text-neonPink-500 border border-neonPink-500/20 mt-0.5">
@@ -213,11 +244,16 @@ export function BoardTable({
                   <td className="py-2.5 px-4 align-top">
                     <textarea
                       rows={2}
+                      readOnly={isReadOnly}
                       value={localLogs[entry.id]?.yesterdayTask ?? entry.yesterdayTask ?? ""}
                       onChange={(e) => handleTextChange(entry.id, "yesterdayTask", e.target.value)}
                       onBlur={() => handleBlurSave(entry.id, "yesterdayTask")}
-                      placeholder="Gõ công việc đã làm hôm qua..."
-                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/60 text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-neonPink-500 focus:ring-1 focus:ring-neonPink-500 font-mono transition-all resize-y min-h-[50px]"
+                      placeholder={isReadOnly ? "(Trống)" : "Gõ công việc đã làm hôm qua..."}
+                      className={`w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-zinc-800 ${
+                        isReadOnly
+                          ? "bg-slate-100/50 dark:bg-zinc-950/30 text-slate-700 dark:text-zinc-300 resize-none"
+                          : "bg-slate-50/50 dark:bg-zinc-950/60 text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-neonPink-500 focus:ring-1 focus:ring-neonPink-500 resize-y"
+                      } font-mono transition-all min-h-[50px]`}
                     />
                   </td>
 
@@ -230,11 +266,16 @@ export function BoardTable({
                   <td className="py-2.5 px-4 align-top">
                     <textarea
                       rows={2}
+                      readOnly={isReadOnly}
                       value={localLogs[entry.id]?.todayTask ?? entry.todayTask ?? ""}
                       onChange={(e) => handleTextChange(entry.id, "todayTask", e.target.value)}
                       onBlur={() => handleBlurSave(entry.id, "todayTask")}
-                      placeholder="Gõ việc sẽ làm hôm nay..."
-                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/60 text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-neonPink-500 focus:ring-1 focus:ring-neonPink-500 font-mono transition-all resize-y min-h-[50px]"
+                      placeholder={isReadOnly ? "(Trống)" : "Gõ việc sẽ làm hôm nay..."}
+                      className={`w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-zinc-800 ${
+                        isReadOnly
+                          ? "bg-slate-100/50 dark:bg-zinc-950/30 text-slate-700 dark:text-zinc-300 resize-none"
+                          : "bg-slate-50/50 dark:bg-zinc-950/60 text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-neonPink-500 focus:ring-1 focus:ring-neonPink-500 resize-y"
+                      } font-mono transition-all min-h-[50px]`}
                     />
                   </td>
 
@@ -245,27 +286,29 @@ export function BoardTable({
 
                   {/* Action & Saved status feedback */}
                   <td className="py-3 px-4 align-top text-right space-y-1">
-                    <div className="flex items-center justify-end space-x-1">
-                      {isSaving ? (
-                        <span className="text-[10px] text-neonPink-500 font-semibold animate-pulse">
-                          Lưu...
-                        </span>
-                      ) : isJustSaved ? (
-                        <span className="inline-flex items-center space-x-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                          <Check className="w-3 h-3" />
-                          <span>Đã lưu</span>
-                        </span>
-                      ) : null}
+                    {!isReadOnly && (
+                      <div className="flex items-center justify-end space-x-1">
+                        {isSaving ? (
+                          <span className="text-[10px] text-neonPink-500 font-semibold animate-pulse">
+                            Lưu...
+                          </span>
+                        ) : isJustSaved ? (
+                          <span className="inline-flex items-center space-x-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                            <Check className="w-3 h-3" />
+                            <span>Đã lưu</span>
+                          </span>
+                        ) : null}
 
-                      <button
-                        type="button"
-                        onClick={() => onDeleteEntry(entry.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                        title="Xóa dòng này"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteEntry(entry.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                          title="Xóa dòng này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
 
                     <div className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
                       {formatDateTime(entry.updatedAt || entry.createdAt)}

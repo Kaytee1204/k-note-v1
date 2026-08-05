@@ -23,10 +23,21 @@ export default function BoardDetailPage() {
 
   const [board, setBoard] = useState<Board | null>(null);
   const [entries, setEntries] = useState<StandupEntry[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Fetch Board Detail & Entries (Ordered by createdAt asc)
+  // Check auth status
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsLoggedIn(!!data.isLoggedIn);
+      })
+      .catch(() => setIsLoggedIn(false));
+  }, []);
+
+  // Fetch Board Detail & Entries
   const fetchBoardDetail = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg(null);
@@ -51,6 +62,11 @@ export default function BoardDetailPage() {
 
   // Add new row to Board directly - Append to bottom of entries array
   const handleAddEntryRow = async (userName?: string) => {
+    if (!isLoggedIn) {
+      alert("Bạn cần Đăng nhập để thêm dòng công việc!");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/boards/${boardId}/entries`, {
         method: "POST",
@@ -66,7 +82,6 @@ export default function BoardDetailPage() {
 
       if (res.ok) {
         const newEntry = await res.json();
-        // Append to the bottom of entries array (người thêm sau ở dưới người tạo trước)
         setEntries((prev) => [...prev, newEntry]);
       }
     } catch (err) {
@@ -76,6 +91,8 @@ export default function BoardDetailPage() {
 
   // Inline update entry
   const handleUpdateEntry = async (id: string, updatedFields: Partial<StandupEntry>) => {
+    if (!isLoggedIn) return;
+
     // Optimistic UI update
     setEntries((prev) =>
       prev.map((e) => (e.id === id ? { ...e, ...updatedFields } : e))
@@ -94,6 +111,7 @@ export default function BoardDetailPage() {
 
   // Delete entry row
   const handleDeleteEntry = async (id: string) => {
+    if (!isLoggedIn) return;
     if (!confirm("Bạn có chắc chắn muốn xóa dòng công việc này khỏi Bảng?")) return;
 
     // Optimistic delete
@@ -110,7 +128,7 @@ export default function BoardDetailPage() {
 
   // Delete Board
   const handleDeleteBoard = async () => {
-    if (!board) return;
+    if (!board || !isLoggedIn) return;
     if (
       !confirm(
         `Bạn có chắc chắn muốn XÓA BẢNG "${board.name}" không? Tất cả các dòng trong Bảng sẽ bị xóa vĩnh viễn.`
@@ -178,18 +196,20 @@ export default function BoardDetailPage() {
                 </div>
               </div>
 
-              {/* Action: Delete Board */}
-              <div className="flex items-center space-x-2 self-start md:self-auto">
-                <button
-                  type="button"
-                  onClick={handleDeleteBoard}
-                  className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-bold text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all"
-                  title="Xóa Bảng này"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xóa Bảng</span>
-                </button>
-              </div>
+              {/* Action: Delete Board - ONLY for Logged In users */}
+              {isLoggedIn && (
+                <div className="flex items-center space-x-2 self-start md:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleDeleteBoard}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-bold text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all"
+                    title="Xóa Bảng này"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xóa Bảng</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -213,6 +233,7 @@ export default function BoardDetailPage() {
         ) : (
           <BoardTable
             entries={entries}
+            isReadOnly={!isLoggedIn}
             onUpdateEntry={handleUpdateEntry}
             onAddEntryRow={handleAddEntryRow}
             onDeleteEntry={handleDeleteEntry}
