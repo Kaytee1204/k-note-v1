@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  PM
+  DEV
+  TESTER
+}
+
+enum TaskStatus {
+  IN_PROGRESS
+  DONE
+}
+
+enum WorkStatus {
+  NOT_YET
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  id               String          @id @default(cuid())
+  supabaseId       String?         @unique
+  email            String          @unique
+  username         String          @unique
+  fullName         String
+  role             Role            @default(DEV)
+  ownedProjects    Project[]       @relation("ProjectOwner")
+  memberships      ProjectMember[]
+  createdBoards    Board[]         @relation("BoardCreator")
+  entries          StandupEntry[]
+  tasks            Task[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  members     ProjectMember[]
+  tasks       Task[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @default(DEV)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id        String     @id @default(cuid())
+  title     String
+  content   String     @db.Text
+  status    TaskStatus @default(IN_PROGRESS)
+  picId     String
+  pic       User       @relation(fields: [picId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  logDate   DateTime   @default(now())
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([logDate])
+  @@index([picId])
+  @@index([projectId])
+}
+
+model Board {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  createdById String?
+  createdBy   User?          @relation("BoardCreator", fields: [createdById], references: [id])
+  entries     StandupEntry[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model StandupEntry {
+  id              String     @id @default(cuid())
+  boardId         String
+  board           Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId          String?
+  userName        String
+  user            User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  yesterdayTask   String     @default("") @db.Text
+  yesterdayStatus WorkStatus @default(DONE)
+  todayTask       String     @default("") @db.Text
+  todayStatus     WorkStatus @default(IN_PROGRESS)
+  tomorrowTask    String?    @default("") @db.Text
+  tomorrowStatus  WorkStatus? @default(NOT_YET)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([boardId])
+}
