@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, fullName, role } = body;
+    const { username, fullName, email, role } = body;
 
     if (!username || !fullName) {
       return NextResponse.json(
@@ -29,10 +29,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const userEmail = email || `${username.toLowerCase().trim()}@knote.app`;
+
     const newUser = await prisma.user.create({
       data: {
-        username,
-        fullName,
+        username: username.trim(),
+        fullName: fullName.trim(),
+        email: userEmail,
         role: role || "DEV",
       },
     });

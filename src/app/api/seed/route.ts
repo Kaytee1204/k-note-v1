@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Role, TaskStatus, WorkStatus } from "@prisma/client";
+import { Role, WorkStatus } from "@prisma/client";
 
 export async function POST() {
   try {
@@ -37,46 +37,53 @@ export async function POST() {
       },
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const worklogCount = await prisma.worklog.count();
-    if (worklogCount === 0) {
-      await prisma.worklog.create({
+    const boardCount = await prisma.board.count();
+    if (boardCount === 0) {
+      await prisma.board.create({
         data: {
-          userId: dev1.id,
-          todayTask: "Phát triển giao diện Bảng theo dõi công việc chung Notion/Excel style.",
-          todayStatus: WorkStatus.IN_PROGRESS,
-          tomorrowTask: "Kiểm thử tương tác Inline Editing & tự động lưu CSDL Supabase.",
-          tomorrowStatus: WorkStatus.NOT_YET,
-          logDate: today,
-        },
-      });
-
-      await prisma.worklog.create({
-        data: {
-          userId: pm.id,
-          todayTask: "Review kế hoạch Sprint 15 & Phân công nhiệm vụ cho Team Software.",
-          todayStatus: WorkStatus.DONE,
-          tomorrowTask: "Họp tổng kết tiến độ cuối tuần với Khách hàng.",
-          tomorrowStatus: WorkStatus.IN_PROGRESS,
-          logDate: today,
-        },
-      });
-
-      await prisma.worklog.create({
-        data: {
-          userId: tester.id,
-          todayTask: "Viết Test Case cho hệ thống Đăng ký & Đăng nhập Auth tức thì.",
-          todayStatus: WorkStatus.DONE,
-          tomorrowTask: "Chạy kiểm thử tự động API Worklogs và lọc theo ngày.",
-          tomorrowStatus: WorkStatus.NOT_YET,
-          logDate: today,
+          id: "sample-board-1",
+          name: "Daily Standup Sprint 15 - Core Team",
+          description: "Bảng theo dõi tiến độ công việc hàng ngày của nhóm Software.",
+          createdById: pm.id,
+          entries: {
+            create: [
+              {
+                userId: dev1.id,
+                userName: dev1.fullName,
+                yesterdayTask: "Cấu hình hệ thống K-Note Workspace.",
+                yesterdayStatus: WorkStatus.DONE,
+                todayTask: "Phát triển giao diện Notion Inline Table.",
+                todayStatus: WorkStatus.IN_PROGRESS,
+                tomorrowTask: "Tối ưu tương tác chèn dòng mới.",
+                tomorrowStatus: WorkStatus.NOT_YET,
+              },
+              {
+                userId: pm.id,
+                userName: pm.fullName,
+                yesterdayTask: "Chuẩn bị tài liệu Sprint 15.",
+                yesterdayStatus: WorkStatus.DONE,
+                todayTask: "Review kiến trúc database Prisma.",
+                todayStatus: WorkStatus.DONE,
+                tomorrowTask: "Họp nghiệm thu các tính năng mới.",
+                tomorrowStatus: WorkStatus.IN_PROGRESS,
+              },
+              {
+                userId: tester.id,
+                userName: tester.fullName,
+                yesterdayTask: "Tạo danh sách Test Case.",
+                yesterdayStatus: WorkStatus.DONE,
+                todayTask: "Viết Test Case cho K-Note Board.",
+                todayStatus: WorkStatus.DONE,
+                tomorrowTask: "Chạy kiểm thử tự động API.",
+                tomorrowStatus: WorkStatus.NOT_YET,
+              },
+            ],
+          },
         },
       });
     }
 
-    return NextResponse.json({ message: "Seeded worklogs successfully!" });
+    return NextResponse.json({ message: "Seeded K-Note boards successfully!" });
   } catch (error) {
     console.error("POST /api/seed error:", error);
     return NextResponse.json({ error: "Seed failure" }, { status: 500 });
