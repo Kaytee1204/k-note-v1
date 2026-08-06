@@ -1,10 +1,10 @@
-# 💖 StandupLogs - Web Quản lý Nhật ký Công việc & Daily Standup (BlackPink Aesthetic)
+# K-Note - Task Board & Team Standup Workspace
 
-Ứng dụng quản lý nhật ký công việc & Daily Standup hiện đại, trẻ trung thiết kế riêng cho **Software Team** theo phong cách **BlackPink Concept**.
+A modern Notion/Excel-style workspace for managing task boards and Daily Standups, built for **Software Teams**. Includes Guest (view-only) mode alongside full Login/Register access.
 
 ---
 
-## 🚀 Công nghệ sử dụng (Tech Stack)
+## Tech Stack
 
 - **Framework**: Next.js 14 (App Router, TypeScript)
 - **Database**: Supabase (PostgreSQL)
@@ -14,87 +14,90 @@
 
 ---
 
-## 🎨 Phong cách thiết kế (BlackPink Aesthetic)
+## Design Style (Pink & Black Neon)
 
-- **Dark Mode**: Nền đen nhám/xám sâu (`bg-zinc-950`), Card xám tối (`bg-zinc-900`), Viền (`border-zinc-800`). Accent nổi bật **Hồng Neon** (`#ff2d75`).
-- **Light Mode**: Nền xám nhạt (`bg-slate-50`), Card trắng thuần, Accent Hồng Neon thời thượng.
-- **Nút "Chèn Template Mẫu"**: Tự động chèn cấu trúc báo cáo chuẩn Daily Standup:
-  ```
-  📅 Ngày: [DD/MM/YYYY]
-  ⏮️ Hôm qua đã làm: - ...
-  ⏩ Hôm nay sẽ làm: - ...
-  🚧 Vấn đề gặp phải: - Không có
-  ```
+- **Dark Mode**: Deep matte black background (`bg-zinc-950`), dark cards (`bg-zinc-900`), subtle borders (`border-zinc-800`). Standout **Neon Pink** accent (`#ff2d75`).
+- **Light Mode**: Light gray background (`bg-slate-50`), clean white cards, same Neon Pink accent for consistency.
+- **Guest Mode**: Visitors can browse boards read-only without an account; login unlocks board creation and editing.
+- **Board View**: Notion/Excel-style layout for organizing tasks by date and team member.
 
 ---
 
-## 🛠️ Hướng dẫn cài đặt & Chạy ứng dụng
+## Setup & Run Instructions
 
-### 1. Di chuyển vào thư mục dự án
+### 1. Navigate to the project directory
+
 ```bash
-cd "C:\Users\Khanh Trinh\.gemini\antigravity\scratch\worklog-standup-app"
+cd path/to/worklog-standup-app
 ```
 
-### 2. Cài đặt các gói phụ thuộc (Dependencies)
+### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
-### 3. Cấu hình Cơ sở dữ liệu (Supabase / PostgreSQL)
-Mở file `.env` và thay thế chuỗi kết nối PostgreSQL Supabase của bạn:
+### 3. Configure the database (Supabase / PostgreSQL)
+
+Open the `.env` file and replace it with your Supabase PostgreSQL connection string:
+
 ```env
 DATABASE_URL="postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgboiler=true"
 ```
 
-### 4. Đẩy CSDL Prisma (Prisma DB Push) & Khởi tạo dữ liệu mẫu (Seed)
+### 4. Push the Prisma schema & seed sample data
+
 ```bash
-# Đồng bộ CSDL với Prisma schema
+# Sync the database with the Prisma schema
 npx prisma db push
 
-# (Tùy chọn) Chạy seed dữ liệu mẫu cho PM, DEV, TESTER
+# (Optional) Seed sample data for PM, DEV, TESTER
 npx prisma db seed
 ```
 
-### 5. Chạy ứng dụng ở chế độ Development
+### 5. Run the app in development mode
+
 ```bash
 npm run dev
 ```
 
-Mở trình duyệt truy cập: [http://localhost:3000](http://localhost:3000)
+Open your browser at: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 📁 Cấu trúc thư mục mã nguồn
+## 📁 Source Code Structure
 
 ```
-worklog-standup-app/
+k-note-app/
 ├── prisma/
-│   ├── schema.prisma         # Schema Prisma định nghĩa User & Task
-│   └── seed.ts               # Kịch bản khởi tạo User & Task mẫu
+│   ├── schema.prisma         # Prisma schema defining User & Board/Task models
+│   └── seed.ts               # Script to seed sample Users & Tasks
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── tasks/        # GET (Filter date/pic), POST (Tạo bài)
-│   │   │   │   └── [id]/     # PUT (Sửa/Status), DELETE (Xóa)
-│   │   │   ├── users/        # Lấy danh sách thành viên team
-│   │   │   └── seed/         # Endpoint hỗ trợ auto-seed
-│   │   ├── dashboard/        # Trang Giao diện chính (Dashboard)
-│   │   ├── globals.css       # Tailwind & hiệu ứng Hồng Neon
-│   │   ├── layout.tsx        # Root layout với ThemeProvider
-│   │   └── page.tsx          # Chuyển hướng tự động tới /dashboard
+│   │   │   ├── tasks/        # GET (filter by date/pic), POST (create task)
+│   │   │   │   └── [id]/     # PUT (edit/status), DELETE (remove)
+│   │   │   ├── users/        # Fetch list of team members
+│   │   │   └── seed/         # Endpoint to support auto-seeding
+│   │   ├── boards/           # Board workspace page (guest view + editable)
+│   │   ├── login/            # Login page
+│   │   ├── register/         # Register page
+│   │   ├── globals.css       # Tailwind & Neon Pink effects
+│   │   ├── layout.tsx        # Root layout with ThemeProvider
+│   │   └── page.tsx          # Auto-redirects to /boards
 │   ├── components/
-│   │   ├── filter-bar.tsx    # Thanh bộ lọc Chọn Ngày & Chọn PIC
-│   │   ├── header.tsx        # Header Logo BlackPink Neon & ThemeToggle
-│   │   ├── task-card.tsx     # Thẻ hiển thị task & quick status toggle
-│   │   ├── task-form-modal.tsx # Form Modal + Button Chèn Template Mẫu
-│   │   ├── theme-provider.tsx# Provider quản lý Dark/Light mode
-│   │   └── theme-toggle.tsx  # Nút chuyển đổi Sun/Moon
+│   │   ├── filter-bar.tsx    # Filter bar for Date & PIC selection
+│   │   ├── header.tsx        # Header with K-Note logo & ThemeToggle
+│   │   ├── task-card.tsx     # Task display card with quick status toggle
+│   │   ├── task-form-modal.tsx # Form modal for creating/editing tasks
+│   │   ├── theme-provider.tsx# Dark/Light mode provider
+│   │   └── theme-toggle.tsx  # Sun/Moon toggle button
 │   ├── lib/
-│   │   ├── prisma.ts         # Singleton Prisma Client
-│   │   └── utils.ts          # Định dạng ngày & helper classnames
+│   │   ├── prisma.ts         # Prisma Client singleton
+│   │   └── utils.ts          # Date formatting & classname helpers
 │   └── types/
-│       └── index.ts          # Định nghĩa TypeScript Types
-├── .env                      # File biến môi trường CSDL
-├── tailwind.config.ts        # Cấu hình Theme màu BlackPink
+│       └── index.ts          # TypeScript type definitions
+├── .env                      # Environment variables file for the database
+├── tailwind.config.ts        # Pink & Black Neon color theme configuration
 └── package.json
 ```
